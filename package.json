@@ -1,14 +1,14 @@
 {
-  "name": "json.db",
+  "name": "db.json",
   "version": "1.0.0",
-  "description": "A database where data is stored as json files",
+  "description": "A node.js DBMS that uses JSON files to store data.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dxaviud/json.db.git"
+    "url": "git+https://github.com/dxaviud/db.json.git"
   },
   "keywords": [
     "JSON",
@@ -17,7 +17,7 @@
   "author": "David Xu",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/dxaviud/json.db/issues"
+    "url": "https://github.com/dxaviud/db.json/issues"
   },
-  "homepage": "https://github.com/dxaviud/json.db#readme"
+  "homepage": "https://github.com/dxaviud/db.json#readme"
 }
