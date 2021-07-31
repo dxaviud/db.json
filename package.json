@@ -1,0 +1,23 @@
+{
+  "name": "json.db",
+  "version": "1.0.0",
+  "description": "A database where data is stored as json files",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dxaviud/json.db.git"
+  },
+  "keywords": [
+    "JSON",
+    "Database"
+  ],
+  "author": "David Xu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dxaviud/json.db/issues"
+  },
+  "homepage": "https://github.com/dxaviud/json.db#readme"
+}
