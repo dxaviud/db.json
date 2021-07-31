@@ -1,3 +1,3 @@
 exports.dbjson = () => {
-    console.log("Hello from json.db");
+    console.log("Hello from db.json");
 } 
