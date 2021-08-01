@@ -4,7 +4,7 @@ class DbJson {
         this.objectCache = new Map();
     }
 
-    hasObject(identifier) {
+    has(identifier) {
         if (this.objectCache.has(identifier)) {
             return true;
         }
@@ -12,19 +12,21 @@ class DbJson {
         return false;
     }
 
-    getObject(identifier) {
+    get(identifier) {
         if (this.objectCache.has(identifier)) {
             return this.objectCache.get(identifier);
         }
+        //todo check if the object is in the filesystem
         return null;
     }
 
-    setObject(identifier, object) {
+    set(identifier, object) {
         this.objectCache.set(identifier, object);
     }
 
     persist() {
-        //todo persist the objects in the object cache to disk (file system)
+        //todo persist the objects in the object cache to disk (filesystem)
+        //split each identifier by '.' and put the corresponding object in the right directory
     }
 }
 
