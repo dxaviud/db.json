@@ -19,5 +19,6 @@
   "bugs": {
     "url": "https://github.com/dxaviud/dbjson/issues"
   },
-  "homepage": "https://github.com/dxaviud/dbjson#readme"
+  "homepage": "https://github.com/dxaviud/dbjson#readme",
+  "type": "module"
 }
