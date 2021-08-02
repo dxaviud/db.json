@@ -1,11 +1,13 @@
 import process from "process";
 import path from "path";
 import FileSystemManager from "./FileSystemManager.js";
+import assert from "assert";
 
 export default class DbJson {
     constructor(dataDir) {
         console.log("Hello from @dxaviud/dbjson");
         this.objectCache = new Map();
+        this.toDelete = new Set();
         dataDir = path.join(process.cwd(), dataDir);
         this.fsmanager = new FileSystemManager(dataDir);
         console.log("Data is stored under " + dataDir);
@@ -17,7 +19,7 @@ export default class DbJson {
             console.log(identifier + " found in cache");
             return true;
         }
-        console.log(identifier + " not found in cache, checking file system");
+        // console.log(identifier + " not found in cache, checking file system");
         if (await this.fsmanager.has(identifier)) {
             console.log(identifier + " found in file system");
             return true;
@@ -32,25 +34,78 @@ export default class DbJson {
             console.log(identifier + " retrieved from cache");
             return this.objectCache.get(identifier);
         }
-        console.log(identifier + " not found in cache, checking file system");
+        // console.log(identifier + " not found in cache, checking file system");
         const result = await this.fsmanager.read(identifier);
         if (result) {
             console.log(identifier + " retrieved from file system");
+            this.set(identifier, result);
         } else {
-            console.log("Could not find " + identifier + ", returning null");
+            console.log("Could not find " + identifier);
         }
         return result;
     }
 
     set(identifier, object) {
-        console.log("Setting " + identifier + " in cache");
         this.objectCache.set(identifier, object);
+        console.log("Added " + identifier + " to cache");
+        if (this.toDelete.has(identifier)) {
+            this.toDelete.delete(identifier);
+            console.log(
+                "Unregistered " +
+                    identifier +
+                    " for deletion from db upon persist call since it was reset in the cache"
+            );
+        }
+    }
+
+    delete(identifier) {
+        this.toDelete.add(identifier);
+        console.log(
+            "Registered " +
+                identifier +
+                " for deletion from db upon persist call"
+        );
+        const deleted = this.objectCache.delete(identifier);
+        if (deleted) {
+            console.log("Deleted " + identifier + " from cache");
+        }
+    }
+
+    async persist(identifier) {
+        assert(
+            !(this.objectCache.has(identifier) && this.toDelete.has(identifier))
+        );
+        if (this.objectCache.has(identifier)) {
+            await this.fsmanager.write(
+                identifier,
+                this.objectCache.get(identifier)
+            );
+            console.log("Persisted " + identifier);
+            return;
+        } else if (this.toDelete.has(identifier)) {
+            await this.fsmanager.remove(identifier);
+            console.log("Persisted " + identifier);
+            return;
+        }
+        throw `${identifier} does not exist in the cache; You must call 'set(${identifier}, <object>)' or 'get(${identifier}) before trying to persist ${identifier}`;
     }
 
     async persist() {
-        console.log("Persisting all objects in cache to the file system");
+        for (const identifier of this.toDelete) {
+            assert(
+                !(
+                    this.objectCache.has(identifier) &&
+                    this.toDelete.has(identifier)
+                )
+            );
+        }
+        console.log("Persisting all changes to the file system");
         for (const [identifier, object] of this.objectCache) {
             await this.fsmanager.write(identifier, object);
+            console.log("Persisted " + identifier);
+        }
+        for (const identifier of this.toDelete) {
+            await this.fsmanager.remove(identifier);
             console.log("Persisted " + identifier);
         }
     }

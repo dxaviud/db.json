@@ -7,22 +7,22 @@ export default class FileSystemManager {
         this.rootPath = rootPath; // the absolute path to the project's directory for storing data
         try {
             fsSync.mkdirSync(rootPath, { recursive: false });
-            console.log("Created directory " + rootPath);
+            // console.log("Created directory " + rootPath);
         } catch {
-            console.log("Directory " + rootPath + " already exists");
+            // console.log("Directory " + rootPath + " already exists");
         }
-        console.log(
-            "Initialized file system manager with root path " + rootPath
-        );
+        // console.log(
+        //     "Initialized file system manager with root path " + rootPath
+        // );
     }
 
     identifierToPath(identifier) {
         const split = identifier.split(".");
         split[split.length - 1] += ".json";
         const resultPath = path.join(this.rootPath, ...split);
-        console.log(
-            "Converted identifier " + identifier + " to path " + resultPath
-        );
+        // console.log(
+        //     "Converted identifier " + identifier + " to path " + resultPath
+        // );
         return resultPath;
     }
 
@@ -33,30 +33,35 @@ export default class FileSystemManager {
 
     async hasPath(filePath) {
         try {
-            await fs.open(filePath);
-            console.log(filePath + " exists");
+            const fileHandle = await fs.open(filePath);
+            await fileHandle.close();
             return true;
         } catch {
-            console.log(filePath + " does not exist");
             return false;
         }
+    }
+
+    async read(identifier) {
+        const filePath = this.identifierToPath(identifier);
+        console.log("Attempting to read " + filePath);
+        if (await this.hasPath(filePath)) {
+            const jsonString = await fs.readFile(filePath, "utf8");
+            console.log("Returning parsed JSON from " + filePath);
+            return JSON.parse(jsonString);
+        }
+        console.log(filePath + " does not exist");
+        return null;
     }
 
     async write(identifier, object) {
         const filePath = this.identifierToPath(identifier);
         await fs.writeFile(filePath, JSON.stringify(object));
-        console.log("Wrote " + identifier + " to " + filePath);
+        console.log("Wrote to " + filePath);
     }
 
-    async read(identifier) {
+    async remove(identifier) {
         const filePath = this.identifierToPath(identifier);
-        console.log("Reading from " + filePath);
-        if (this.hasPath(filePath)) {
-            const jsonString = await fs.readFile(filePath, "utf8");
-            console.log("Returning parsed JSON");
-            return JSON.parse(jsonString);
-        }
-        console.log(filePath + " does not exist, returning null");
-        return null;
+        await fs.rm(filePath);
+        console.log("Removed " + filePath);
     }
 }
