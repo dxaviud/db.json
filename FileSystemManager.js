@@ -3,29 +3,23 @@ import fsSync from "fs";
 import path from "path";
 
 export default class FileSystemManager {
-    constructor(rootPath, dataDir) {
-        this.rootPath = rootPath; // the absolute path to the project's root directory
-        this.dataDir = dataDir; // the name of the directory that stores db data
-        const dataDirFullPath = path.join(rootPath, dataDir);
-        fsSync.mkdir(dataDirFullPath, { recursive: false }, (err) => {
-            if (err) {
-                console.log(dataDirFullPath + " directory already exists");
-            } else {
-                console.log("Created directory " + dataDirFullPath);
-            }
-        });
+    constructor(rootPath) {
+        this.rootPath = rootPath; // the absolute path to the project's directory for storing data
+        try {
+            fsSync.mkdirSync(rootPath, { recursive: false });
+            console.log("Created directory " + rootPath);
+        } catch {
+            console.log("Directory " + rootPath + " already exists");
+        }
         console.log(
-            "initialized file system manager with root path " +
-                rootPath +
-                " and data directory " +
-                dataDir
+            "Initialized file system manager with root path " + rootPath
         );
     }
 
     identifierToPath(identifier) {
         const split = identifier.split(".");
         split[split.length - 1] += ".json";
-        const resultPath = path.join(this.rootPath, this.dataDir, ...split);
+        const resultPath = path.join(this.rootPath, ...split);
         console.log(
             "Converted identifier " + identifier + " to path " + resultPath
         );

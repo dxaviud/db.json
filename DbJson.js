@@ -4,13 +4,11 @@ import FileSystemManager from "./FileSystemManager.js";
 
 export default class DbJson {
     constructor(dataDir) {
-        const cwd = process.cwd();
+        console.log("Hello from @dxaviud/dbjson");
         this.objectCache = new Map();
-        this.fsmanager = new FileSystemManager(cwd, dataDir);
-        console.log(
-            "Hello from @dxaviud/dbjson, your database has been initialized"
-        );
-        console.log("Data is stored under " + path.join(cwd, dataDir));
+        dataDir = path.join(process.cwd(), dataDir);
+        this.fsmanager = new FileSystemManager(dataDir);
+        console.log("Data is stored under " + dataDir);
     }
 
     async has(identifier) {
@@ -19,8 +17,9 @@ export default class DbJson {
             console.log(identifier + " found in cache");
             return true;
         }
+        console.log(identifier + " not found in cache, checking file system");
         if (await this.fsmanager.has(identifier)) {
-            console.log(identifier + " found under " + this.dataDir);
+            console.log(identifier + " found in file system");
             return true;
         }
         console.log("Could not find " + identifier);
@@ -33,12 +32,14 @@ export default class DbJson {
             console.log(identifier + " retrieved from cache");
             return this.objectCache.get(identifier);
         }
-        if (await this.fsmanager.has(identifier)) {
-            console.log(identifier + " retrieved from under " + this.dataDir);
-            return this.fsmanager.read(identifier);
+        console.log(identifier + " not found in cache, checking file system");
+        const result = await this.fsmanager.read(identifier);
+        if (result) {
+            console.log(identifier + " retrieved from file system");
+        } else {
+            console.log("Could not find " + identifier + ", returning null");
         }
-        console.log("Could not find " + identifier + ", returning null");
-        return null;
+        return result;
     }
 
     set(identifier, object) {
