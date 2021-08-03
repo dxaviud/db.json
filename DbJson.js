@@ -4,23 +4,27 @@ import FileSystemManager from "./FileSystemManager.js";
 import assert from "assert";
 
 export default class DbJson {
+    #objectCache;
+    #toDelete;
+    #fsmanager;
+
     constructor(dataDir) {
         console.log("Hello from @dxaviud/dbjson");
-        this.objectCache = new Map();
-        this.toDelete = new Set();
+        this.#objectCache = new Map();
+        this.#toDelete = new Set();
         dataDir = path.join(process.cwd(), dataDir);
-        this.fsmanager = new FileSystemManager(dataDir);
+        this.#fsmanager = new FileSystemManager(dataDir);
         console.log("Data is stored under " + dataDir);
     }
 
     async has(identifier) {
         console.log("Checking if db has " + identifier);
-        if (this.objectCache.has(identifier)) {
+        if (this.#objectCache.has(identifier)) {
             console.log(identifier + " found in cache");
             return true;
         }
         // console.log(identifier + " not found in cache, checking file system");
-        if (await this.fsmanager.has(identifier)) {
+        if (await this.#fsmanager.has(identifier)) {
             console.log(identifier + " found in file system");
             return true;
         }
@@ -30,12 +34,12 @@ export default class DbJson {
 
     async get(identifier) {
         console.log("Getting " + identifier);
-        if (this.objectCache.has(identifier)) {
+        if (this.#objectCache.has(identifier)) {
             console.log(identifier + " retrieved from cache");
-            return this.objectCache.get(identifier);
+            return this.#objectCache.get(identifier);
         }
         // console.log(identifier + " not found in cache, checking file system");
-        const result = await this.fsmanager.read(identifier);
+        const result = await this.#fsmanager.read(identifier);
         if (result) {
             console.log(identifier + " retrieved from file system");
             this.set(identifier, result);
@@ -46,10 +50,10 @@ export default class DbJson {
     }
 
     set(identifier, object) {
-        this.objectCache.set(identifier, object);
+        this.#objectCache.set(identifier, object);
         console.log("Added " + identifier + " to cache");
-        if (this.toDelete.has(identifier)) {
-            this.toDelete.delete(identifier);
+        if (this.#toDelete.has(identifier)) {
+            this.#toDelete.delete(identifier);
             console.log(
                 "Unregistered " +
                     identifier +
@@ -58,54 +62,63 @@ export default class DbJson {
         }
     }
 
-    delete(identifier) {
-        this.toDelete.add(identifier);
-        console.log(
-            "Registered " +
-                identifier +
-                " for deletion from db upon persist call"
-        );
-        const deleted = this.objectCache.delete(identifier);
+    async delete(identifier) {
+        const deleted = this.#objectCache.delete(identifier);
         if (deleted) {
             console.log("Deleted " + identifier + " from cache");
         }
+        const exists = await this.#fsmanager.has(identifier);
+        if (exists) {
+            this.#toDelete.add(identifier);
+            console.log(
+                "Registered " +
+                    identifier +
+                    " for deletion from db upon persist call"
+            );
+        } else {
+            console.log(identifier + " does not exist in the database");
+        }
+        return exists;
     }
 
     async persist(identifier) {
         assert(
-            !(this.objectCache.has(identifier) && this.toDelete.has(identifier))
+            !(
+                this.#objectCache.has(identifier) &&
+                this.#toDelete.has(identifier)
+            )
         );
-        if (this.objectCache.has(identifier)) {
-            await this.fsmanager.write(
+        if (this.#objectCache.has(identifier)) {
+            await this.#fsmanager.write(
                 identifier,
-                this.objectCache.get(identifier)
+                this.#objectCache.get(identifier)
             );
             console.log("Persisted " + identifier);
             return;
-        } else if (this.toDelete.has(identifier)) {
-            await this.fsmanager.remove(identifier);
+        } else if (this.#toDelete.has(identifier)) {
+            await this.#fsmanager.remove(identifier);
             console.log("Persisted " + identifier);
             return;
         }
         throw `${identifier} does not exist in the cache; You must call 'set(${identifier}, <object>)' or 'get(${identifier}) before trying to persist ${identifier}`;
     }
 
-    async persist() {
-        for (const identifier of this.toDelete) {
+    async persistAll() {
+        for (const identifier of this.#toDelete) {
             assert(
                 !(
-                    this.objectCache.has(identifier) &&
-                    this.toDelete.has(identifier)
+                    this.#objectCache.has(identifier) &&
+                    this.#toDelete.has(identifier)
                 )
             );
         }
         console.log("Persisting all changes to the file system");
-        for (const [identifier, object] of this.objectCache) {
-            await this.fsmanager.write(identifier, object);
+        for (const [identifier, object] of this.#objectCache) {
+            await this.#fsmanager.write(identifier, object);
             console.log("Persisted " + identifier);
         }
-        for (const identifier of this.toDelete) {
-            await this.fsmanager.remove(identifier);
+        for (const identifier of this.#toDelete) {
+            await this.#fsmanager.remove(identifier);
             console.log("Persisted " + identifier);
         }
     }
