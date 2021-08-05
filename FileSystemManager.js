@@ -28,6 +28,12 @@ export default class FileSystemManager {
         return resultPath;
     }
 
+    #identifierToDirectory(identifier) {
+        const split = identifier.split(".");
+        split.pop();
+        return path.join(this.#rootPath, ...split);
+    }
+
     async has(identifier) {
         const filePath = this.#identifierToPath(identifier);
         return await this.#hasPath(filePath);
@@ -56,6 +62,8 @@ export default class FileSystemManager {
     }
 
     async write(identifier, object) {
+        const dirPath = this.#identifierToDirectory(identifier);
+        await this.#ensureDirectory(dirPath);
         const filePath = this.#identifierToPath(identifier);
         await fs.writeFile(filePath, JSON.stringify(object));
         console.log("Wrote to " + filePath);
@@ -65,5 +73,15 @@ export default class FileSystemManager {
         const filePath = this.#identifierToPath(identifier);
         await fs.rm(filePath);
         console.log("Removed " + filePath);
+    }
+
+    async #ensureDirectory(directoryPath) {
+        try {
+            const handle = await fs.opendir(directoryPath);
+            await handle.close();
+            return;
+        } catch {
+            await fs.mkdir(directoryPath, { recursive: true });
+        }
     }
 }
