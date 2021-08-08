@@ -8,14 +8,13 @@ export default class FileSystemManager {
     constructor(rootPath) {
         this.#rootPath = rootPath;
         try {
-            fsSync.mkdirSync(rootPath, { recursive: false });
-            // console.log("Created directory " + rootPath);
+            const handle = fsSync.opendirSync(rootPath);
+            handle.closeSync();
+            console.log("exists");
         } catch {
-            // console.log("Directory " + rootPath + " already exists");
+            fsSync.mkdirSync(rootPath, { recursive: false });
+            console.log("made");
         }
-        // console.log(
-        //     "Initialized file system manager with root path " + rootPath
-        // );
     }
 
     async hasFile(filePath) {
