@@ -26,13 +26,12 @@ export default class FileSystemManager {
     }
 
     async readFile(filePath) {
-        console.log("Attempting to read " + filePath);
         if (await this.hasFile(filePath)) {
             const jsonString = await fs.readFile(filePath, "utf8");
-            console.log("Returning parsed JSON from " + filePath);
+            console.log("Read object from " + filePath);
             return JSON.parse(jsonString);
         }
-        console.log(filePath + " does not exist");
+        console.log(filePath + " does not exist, cannot read from it");
         return null;
     }
 
