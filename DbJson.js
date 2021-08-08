@@ -3,6 +3,8 @@ import path from "path";
 import FileSystemManager from "./FileSystemManager.js";
 import assert from "assert";
 
+// todo consider moving all the identifier stuff from the file system manager class to dbjson
+
 export default class DbJson {
     #objectCache;
     #toDelete;
@@ -49,7 +51,7 @@ export default class DbJson {
         return result;
     }
 
-    set(identifier, object) {
+    async set(identifier, object) {
         this.#objectCache.set(identifier, object);
         console.log("Added " + identifier + " to cache");
         if (this.#toDelete.has(identifier)) {
@@ -60,6 +62,7 @@ export default class DbJson {
                     " for deletion from db upon persist call since it was reset in the cache"
             );
         }
+        return true;
     }
 
     async delete(identifier) {
@@ -94,11 +97,11 @@ export default class DbJson {
                 this.#objectCache.get(identifier)
             );
             console.log("Persisted " + identifier);
-            return;
+            return true;
         } else if (this.#toDelete.has(identifier)) {
             await this.#fsmanager.remove(identifier);
             console.log("Persisted " + identifier);
-            return;
+            return true;
         }
         throw `${identifier} does not exist in the cache; You must call 'set(${identifier}, <object>)' or 'get(${identifier}) before trying to persist ${identifier}`;
     }
@@ -113,13 +116,19 @@ export default class DbJson {
             );
         }
         console.log("Persisting all changes to the file system");
-        for (const [identifier, object] of this.#objectCache) {
-            await this.#fsmanager.write(identifier, object);
-            console.log("Persisted " + identifier);
-        }
-        for (const identifier of this.#toDelete) {
-            await this.#fsmanager.remove(identifier);
-            console.log("Persisted " + identifier);
+        try {
+            for (const [identifier, object] of this.#objectCache) {
+                await this.#fsmanager.write(identifier, object);
+                console.log("Persisted " + identifier);
+            }
+            for (const identifier of this.#toDelete) {
+                await this.#fsmanager.remove(identifier);
+                console.log("Persisted " + identifier);
+            }
+            return true;
+        } catch (err) {
+            console.error(err);
+            return false;
         }
     }
 }
