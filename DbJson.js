@@ -44,7 +44,7 @@ export default class DbJson {
         }
         // console.log(identifier + " not found in cache, checking file system");
         const path = this.#converter.pathOf(identifier);
-        const result = await this.#fsmanager.read(path);
+        const result = await this.#fsmanager.readFile(path);
         if (result) {
             console.log(identifier + " retrieved from file system");
             this.set(identifier, result);
@@ -97,14 +97,14 @@ export default class DbJson {
         );
         const path = this.#converter.pathOf(identifier);
         if (this.#objectCache.has(identifier)) {
-            await this.#fsmanager.write(
+            await this.#fsmanager.writeFile(
                 path,
                 this.#objectCache.get(identifier)
             );
             console.log("Persisted " + identifier);
             return true;
         } else if (this.#toDelete.has(identifier)) {
-            await this.#fsmanager.remove(path);
+            await this.#fsmanager.removeFile(path);
             console.log("Persisted " + identifier);
             return true;
         }
@@ -124,12 +124,12 @@ export default class DbJson {
         try {
             for (const [identifier, object] of this.#objectCache) {
                 const path = this.#converter.pathOf(identifier);
-                await this.#fsmanager.write(path, object);
+                await this.#fsmanager.writeFile(path, object);
                 console.log("Persisted " + identifier);
             }
             for (const identifier of this.#toDelete) {
                 const path = this.#converter.pathOf(identifier);
-                await this.#fsmanager.remove(path);
+                await this.#fsmanager.removeFile(path);
                 console.log("Persisted " + identifier);
             }
             return true;

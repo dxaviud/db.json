@@ -28,7 +28,7 @@ export default class FileSystemManager {
         }
     }
 
-    async read(filePath) {
+    async readFile(filePath) {
         console.log("Attempting to read " + filePath);
         if (await this.hasFile(filePath)) {
             const jsonString = await fs.readFile(filePath, "utf8");
@@ -39,14 +39,14 @@ export default class FileSystemManager {
         return null;
     }
 
-    async write(filePath, object) {
+    async writeFile(filePath, object) {
         const dirPath = path.dirname(filePath);
         await this.#ensureDir(dirPath);
         await fs.writeFile(filePath, JSON.stringify(object));
         console.log("Wrote to " + filePath);
     }
 
-    async remove(filePath) {
+    async removeFile(filePath) {
         await fs.rm(filePath);
         console.log("Removed " + filePath);
         let dirPath = path.dirname(filePath);
