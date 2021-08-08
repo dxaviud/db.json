@@ -6,7 +6,7 @@ export default class FileSystemManager {
     #rootPath;
 
     constructor(rootPath) {
-        this.#rootPath = rootPath; // the absolute path to the project's directory for storing data
+        this.#rootPath = rootPath;
         try {
             fsSync.mkdirSync(rootPath, { recursive: false });
             // console.log("Created directory " + rootPath);
@@ -18,28 +18,7 @@ export default class FileSystemManager {
         // );
     }
 
-    #identifierToPath(identifier) {
-        const split = identifier.split(".");
-        split[split.length - 1] += ".json";
-        const resultPath = path.join(this.#rootPath, ...split);
-        // console.log(
-        //     "Converted identifier " + identifier + " to path " + resultPath
-        // );
-        return resultPath;
-    }
-
-    #identifierToDirectory(identifier) {
-        const split = identifier.split(".");
-        split.pop();
-        return path.join(this.#rootPath, ...split);
-    }
-
-    async has(identifier) {
-        const filePath = this.#identifierToPath(identifier);
-        return await this.#hasPath(filePath);
-    }
-
-    async #hasPath(filePath) {
+    async hasFile(filePath) {
         try {
             const fileHandle = await fs.open(filePath);
             await fileHandle.close();
@@ -49,10 +28,9 @@ export default class FileSystemManager {
         }
     }
 
-    async read(identifier) {
-        const filePath = this.#identifierToPath(identifier);
+    async read(filePath) {
         console.log("Attempting to read " + filePath);
-        if (await this.#hasPath(filePath)) {
+        if (await this.hasFile(filePath)) {
             const jsonString = await fs.readFile(filePath, "utf8");
             console.log("Returning parsed JSON from " + filePath);
             return JSON.parse(jsonString);
@@ -61,27 +39,36 @@ export default class FileSystemManager {
         return null;
     }
 
-    async write(identifier, object) {
-        const dirPath = this.#identifierToDirectory(identifier);
-        await this.#ensureDirectory(dirPath);
-        const filePath = this.#identifierToPath(identifier);
+    async write(filePath, object) {
+        const dirPath = path.dirname(filePath);
+        await this.#ensureDir(dirPath);
         await fs.writeFile(filePath, JSON.stringify(object));
         console.log("Wrote to " + filePath);
     }
 
-    async remove(identifier) {
-        const filePath = this.#identifierToPath(identifier);
+    async remove(filePath) {
         await fs.rm(filePath);
         console.log("Removed " + filePath);
+        let dirPath = path.dirname(filePath);
+        while (dirPath !== this.#rootPath && this.#dirEmpty(dirPath)) {
+            await fs.rmdir(dirPath);
+            console.log("Removed empty directory " + dirPath);
+            dirPath = path.dirname(dirPath);
+        }
     }
 
-    async #ensureDirectory(directoryPath) {
+    async #ensureDir(dirPath) {
         try {
-            const handle = await fs.opendir(directoryPath);
+            const handle = await fs.opendir(dirPath);
             await handle.close();
             return;
         } catch {
-            await fs.mkdir(directoryPath, { recursive: true });
+            await fs.mkdir(dirPath, { recursive: true });
         }
+    }
+
+    async #dirEmpty(dirPath) {
+        const files = await fs.readdir(dirPath);
+        return files.length === 0;
     }
 }

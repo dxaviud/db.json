@@ -2,20 +2,21 @@ import process from "process";
 import path from "path";
 import FileSystemManager from "./FileSystemManager.js";
 import assert from "assert";
-
-// todo consider moving all the identifier stuff from the file system manager class to dbjson
+import { IdentifierConverter } from "./Utilities.js";
 
 export default class DbJson {
     #objectCache;
     #toDelete;
     #fsmanager;
+    #converter;
 
     constructor(dataDir) {
         console.log("Hello from @dxaviud/dbjson");
+        dataDir = path.join(process.cwd(), dataDir);
         this.#objectCache = new Map();
         this.#toDelete = new Set();
-        dataDir = path.join(process.cwd(), dataDir);
         this.#fsmanager = new FileSystemManager(dataDir);
+        this.#converter = new IdentifierConverter(dataDir);
         console.log("Data is stored under " + dataDir);
     }
 
@@ -26,7 +27,8 @@ export default class DbJson {
             return true;
         }
         // console.log(identifier + " not found in cache, checking file system");
-        if (await this.#fsmanager.has(identifier)) {
+        const path = this.#converter.pathOf(identifier);
+        if (await this.#fsmanager.hasFile(path)) {
             console.log(identifier + " found in file system");
             return true;
         }
@@ -41,7 +43,8 @@ export default class DbJson {
             return this.#objectCache.get(identifier);
         }
         // console.log(identifier + " not found in cache, checking file system");
-        const result = await this.#fsmanager.read(identifier);
+        const path = this.#converter.pathOf(identifier);
+        const result = await this.#fsmanager.read(path);
         if (result) {
             console.log(identifier + " retrieved from file system");
             this.set(identifier, result);
@@ -70,7 +73,8 @@ export default class DbJson {
         if (deleted) {
             console.log("Deleted " + identifier + " from cache");
         }
-        const exists = await this.#fsmanager.has(identifier);
+        const path = this.#converter.pathOf(identifier);
+        const exists = await this.#fsmanager.hasFile(path);
         if (exists) {
             this.#toDelete.add(identifier);
             console.log(
@@ -91,15 +95,16 @@ export default class DbJson {
                 this.#toDelete.has(identifier)
             )
         );
+        const path = this.#converter.pathOf(identifier);
         if (this.#objectCache.has(identifier)) {
             await this.#fsmanager.write(
-                identifier,
+                path,
                 this.#objectCache.get(identifier)
             );
             console.log("Persisted " + identifier);
             return true;
         } else if (this.#toDelete.has(identifier)) {
-            await this.#fsmanager.remove(identifier);
+            await this.#fsmanager.remove(path);
             console.log("Persisted " + identifier);
             return true;
         }
@@ -118,11 +123,13 @@ export default class DbJson {
         console.log("Persisting all changes to the file system");
         try {
             for (const [identifier, object] of this.#objectCache) {
-                await this.#fsmanager.write(identifier, object);
+                const path = this.#converter.pathOf(identifier);
+                await this.#fsmanager.write(path, object);
                 console.log("Persisted " + identifier);
             }
             for (const identifier of this.#toDelete) {
-                await this.#fsmanager.remove(identifier);
+                const path = this.#converter.pathOf(identifier);
+                await this.#fsmanager.remove(path);
                 console.log("Persisted " + identifier);
             }
             return true;
