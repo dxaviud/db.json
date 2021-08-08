@@ -10,10 +10,8 @@ export default class FileSystemManager {
         try {
             const handle = fsSync.opendirSync(rootPath);
             handle.closeSync();
-            console.log("exists");
         } catch {
             fsSync.mkdirSync(rootPath, { recursive: false });
-            console.log("made");
         }
     }
 
