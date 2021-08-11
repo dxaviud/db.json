@@ -25,6 +25,16 @@ export default class FileSystemManager {
         }
     }
 
+    hasFileSync(filePath) {
+        try {
+            const fd = fsSync.openSync(filePath);
+            fsSync.closeSync(fd);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
     async readFile(filePath) {
         if (await this.hasFile(filePath)) {
             const jsonString = await fs.readFile(filePath, "utf8");
@@ -35,11 +45,25 @@ export default class FileSystemManager {
         return null;
     }
 
+    readFileSync(filePath) {
+        if (this.hasFileSync(filePath)) {
+            const jsonString = fsSync.readFileSync(filePath, "utf8");
+            return JSON.parse(jsonString);
+        }
+        return null;
+    }
+
     async writeFile(filePath, object) {
         const dirPath = path.dirname(filePath);
         await this.#ensureDir(dirPath);
         await fs.writeFile(filePath, JSON.stringify(object));
         console.log("Wrote to " + filePath);
+    }
+
+    writeFileSync(filePath, object) {
+        const dirPath = path.dirname(filePath);
+        this.#ensureDirSync(dirPath);
+        fsSync.writeFileSync(filePath, JSON.stringify(object));
     }
 
     async removeFile(filePath) {
@@ -57,10 +81,20 @@ export default class FileSystemManager {
         try {
             const handle = await fs.opendir(dirPath);
             await handle.close();
-            return;
         } catch {
             await fs.mkdir(dirPath, { recursive: true });
         }
+        return true;
+    }
+
+    #ensureDirSync(dirPath) {
+        try {
+            const handle = fsSync.opendirSync(dirPath);
+            handle.closeSync();
+        } catch {
+            fsSync.mkdirSync(dirPath, { recursive: true });
+        }
+        return true;
     }
 
     async #dirEmpty(dirPath) {

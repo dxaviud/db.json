@@ -9,6 +9,7 @@ export default class DbJson {
     #toDelete;
     #fsmanager;
     #converter;
+    #pathMap;
 
     constructor(dataDir) {
         console.log("Hello from @dxaviud/dbjson");
@@ -17,6 +18,7 @@ export default class DbJson {
         this.#toDelete = new Set();
         this.#fsmanager = new FileSystemManager(dataDir);
         this.#converter = new IdentifierConverter(dataDir);
+        this.#initializePathMap(path.join(dataDir, "__path_mappings__.json"));
         console.log("Data is stored under " + dataDir);
     }
 
@@ -136,6 +138,18 @@ export default class DbJson {
         } catch (err) {
             console.error(err);
             return false;
+        }
+    }
+
+    #initializePathMap(pathToPathMappings) {
+        // https://stackoverflow.com/questions/37437805/convert-map-to-json-object-in-javascript
+        if (this.#fsmanager.hasFileSync(pathToPathMappings)) {
+            this.#pathMap = new Map(
+                Object.entries(this.#fsmanager.readFileSync(pathToPathMappings))
+            );
+        } else {
+            this.#fsmanager.writeFileSync(pathToPathMappings, {});
+            this.#pathMap = new Map();
         }
     }
 }
