@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
 
+//todo move all JSON related stuff from here into DbJson
 export default class FileSystemManager {
     #rootPath;
 

@@ -9,6 +9,7 @@ export default class DbJson {
     #toDelete;
     #fsmanager;
     #converter;
+    #pathToPathMap;
     #pathMap;
 
     constructor(dataDir) {
@@ -18,7 +19,8 @@ export default class DbJson {
         this.#toDelete = new Set();
         this.#fsmanager = new FileSystemManager(dataDir);
         this.#converter = new IdentifierConverter(dataDir);
-        this.#initializePathMap(path.join(dataDir, "__path_mappings__.json"));
+        this.#pathToPathMap = path.join(dataDir, "__path_mappings__.json");
+        this.#initializePathMap();
         console.log("Data is stored under " + dataDir);
     }
 
@@ -104,10 +106,12 @@ export default class DbJson {
                 this.#objectCache.get(identifier)
             );
             console.log("Persisted " + identifier);
+            this.#persistPathMap();
             return true;
         } else if (this.#toDelete.has(identifier)) {
             await this.#fsmanager.removeFile(path);
             console.log("Persisted " + identifier);
+            this.#persistPathMap();
             return true;
         }
         throw `${identifier} does not exist in the cache; You must call 'set(${identifier}, <object>)' or 'get(${identifier}) before trying to persist ${identifier}`;
@@ -134,6 +138,7 @@ export default class DbJson {
                 await this.#fsmanager.removeFile(path);
                 console.log("Persisted " + identifier);
             }
+            this.#persistPathMap();
             return true;
         } catch (err) {
             console.error(err);
@@ -141,15 +146,23 @@ export default class DbJson {
         }
     }
 
-    #initializePathMap(pathToPathMappings) {
+    #initializePathMap() {
         // https://stackoverflow.com/questions/37437805/convert-map-to-json-object-in-javascript
-        if (this.#fsmanager.hasFileSync(pathToPathMappings)) {
+        if (this.#fsmanager.hasFileSync(this.#pathToPathMap)) {
             this.#pathMap = new Map(
-                Object.entries(this.#fsmanager.readFileSync(pathToPathMappings))
+                Object.entries(
+                    this.#fsmanager.readFileSync(this.#pathToPathMap)
+                )
             );
         } else {
-            this.#fsmanager.writeFileSync(pathToPathMappings, {});
             this.#pathMap = new Map();
         }
+    }
+
+    #persistPathMap() {
+        this.#fsmanager.writeFileSync(
+            this.#pathToPathMap,
+            Object.fromEntries(this.#pathMap)
+        );
     }
 }
