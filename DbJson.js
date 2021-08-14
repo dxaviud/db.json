@@ -2,7 +2,7 @@ import process from "process";
 import path from "path";
 import FileSystemManager from "./FileSystemManager.js";
 import assert from "assert";
-import { IdentifierConverter } from "./Utilities.js";
+import { Converter } from "./Utilities.js";
 
 export default class DbJson {
     #objectCache;
@@ -18,7 +18,7 @@ export default class DbJson {
         this.#objectCache = new Map();
         this.#toDelete = new Set();
         this.#fsmanager = new FileSystemManager(dataDir);
-        this.#converter = new IdentifierConverter(dataDir);
+        this.#converter = new Converter(dataDir);
         this.#pathToPathMap = path.join(dataDir, "__path_mappings__.json");
         this.#initializePathMap();
         console.log("Data is stored under " + dataDir);
@@ -31,10 +31,18 @@ export default class DbJson {
             return true;
         }
         // console.log(identifier + " not found in cache, checking file system");
-        const path = this.#converter.pathOf(identifier);
+        let path = this.#converter.pathOf(identifier);
         if (await this.#fsmanager.hasFile(path)) {
             console.log(identifier + " found in file system");
             return true;
+        }
+        if (this.#pathMap.has(identifier)) {
+            path = this.#pathMap.get(identifier);
+            if (await this.#fsmanager.hasFile(path)) {
+                console.log(identifier + " found in file system");
+                return true;
+            }
+            assert(false); // path map is wrong, mapped to non-existent path
         }
         console.log("Could not find " + identifier);
         return false;
@@ -47,18 +55,27 @@ export default class DbJson {
             return this.#objectCache.get(identifier);
         }
         // console.log(identifier + " not found in cache, checking file system");
-        const path = this.#converter.pathOf(identifier);
-        const result = await this.#fsmanager.readFile(path);
+        let path = this.#converter.pathOf(identifier);
+        let result = await this.#fsmanager.readFile(path);
         if (result) {
             console.log(identifier + " retrieved from file system");
             this.set(identifier, result);
-        } else {
-            console.log("Could not find " + identifier);
+            this.#updateUnqualifiedIdentifierInCache(identifier, result);
+        } else if (this.#pathMap.has(identifier)) {
+            path = this.#pathMap.get(identifier);
+            result = await this.#fsmanager.readFile(path);
+            if (result) {
+                console.log(identifier + " retrieved from file system");
+                this.set(identifier, result);
+            } else {
+                console.log("Could not find " + identifier);
+            }
         }
         return result;
     }
 
     async set(identifier, object) {
+        this.#updateUnqualifiedIdentifierInCache(identifier, object);
         this.#objectCache.set(identifier, object);
         console.log("Added " + identifier + " to cache");
         if (this.#toDelete.has(identifier)) {
@@ -69,16 +86,22 @@ export default class DbJson {
                     " for deletion from db upon persist call since it was reset in the cache"
             );
         }
+        this.#updatePathMap(identifier);
         return true;
     }
 
     async delete(identifier) {
-        const deleted = this.#objectCache.delete(identifier);
+        let deleted = this.#objectCache.delete(identifier);
         if (deleted) {
             console.log("Deleted " + identifier + " from cache");
         }
-        const path = this.#converter.pathOf(identifier);
-        const exists = await this.#fsmanager.hasFile(path);
+        const unqualifiedIdentifier = this.#unqualifiedIdentifierOf(identifier);
+        deleted = this.#objectCache.delete(unqualifiedIdentifier);
+        if (deleted) {
+            console.log("Deleted " + unqualifiedIdentifier + " from cache");
+        }
+        let path = this.#converter.pathOf(identifier);
+        let exists = await this.#fsmanager.hasFile(path);
         if (exists) {
             this.#toDelete.add(identifier);
             console.log(
@@ -87,8 +110,20 @@ export default class DbJson {
                     " for deletion from db upon persist call"
             );
         } else {
-            console.log(identifier + " does not exist in the database");
+            path = this.#pathMap.get(identifier);
+            exists = await this.#fsmanager.hasFile(path);
+            if (exists) {
+                this.#toDelete.add(identifier);
+                console.log(
+                    "Registered " +
+                        identifier +
+                        " for deletion from db upon persist call"
+                );
+            } else {
+                console.log(identifier + " does not exist in the database");
+            }
         }
+        this.#updatePathMap(identifier, { delete: true });
         return exists;
     }
 
@@ -111,6 +146,7 @@ export default class DbJson {
         } else if (this.#toDelete.has(identifier)) {
             await this.#fsmanager.removeFile(path);
             console.log("Persisted " + identifier);
+            this.#toDelete.delete(identifier);
             this.#persistPathMap();
             return true;
         }
@@ -164,5 +200,42 @@ export default class DbJson {
             this.#pathToPathMap,
             Object.fromEntries(this.#pathMap)
         );
+    }
+
+    #updatePathMap(identifier, options = { delete: false }) {
+        const unqualifiedIdentifier = this.#unqualifiedIdentifierOf(identifier);
+        if (options.delete) {
+            this.#pathMap.delete(unqualifiedIdentifier);
+        } else if (identifier !== unqualifiedIdentifier) {
+            if (!this.#pathMap.has(unqualifiedIdentifier)) {
+                this.#pathMap.set(
+                    unqualifiedIdentifier,
+                    this.#converter.pathOf(identifier)
+                );
+            } else {
+                this.#pathMap.delete(unqualifiedIdentifier);
+            }
+        }
+    }
+
+    #unqualifiedIdentifierOf(qualifiedIdentifier) {
+        return qualifiedIdentifier.split(".").pop();
+    }
+
+    #updateUnqualifiedIdentifierInCache(identifier, object) {
+        const unqualifiedIdentifier = this.#unqualifiedIdentifierOf(identifier);
+        if (!this.#objectCache.has(unqualifiedIdentifier)) {
+            this.#objectCache.set(unqualifiedIdentifier, object);
+            console.log(
+                "Added " + unqualifiedIdentifier + " to cache (unqualified)"
+            );
+        } else if (!this.#objectCache.has(identifier)) {
+            this.#objectCache.delete(unqualifiedIdentifier);
+            console.log(
+                "Removed " +
+                    unqualifiedIdentifier +
+                    " from cache since it will be ambiguous"
+            );
+        }
     }
 }

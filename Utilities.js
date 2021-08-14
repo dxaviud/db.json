@@ -1,6 +1,6 @@
 import path from "path";
 
-export class IdentifierConverter {
+export class Converter {
     #rootPath;
 
     constructor(rootPath) {
