@@ -1,3 +1,3 @@
 # dbjson
 
-A node.js DBMS that uses JSON files to store data.
+A (very slim) DBMS for Node.js that uses JSON files to store data.
