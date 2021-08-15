@@ -1,6 +1,6 @@
 {
   "name": "@dxaviud/dbjson",
-  "version": "4.2.0",
+  "version": "5.0.0",
   "description": "A node.js DBMS that uses JSON files to store data.",
   "main": "index.js",
   "scripts": {
