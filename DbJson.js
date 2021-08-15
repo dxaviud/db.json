@@ -57,21 +57,24 @@ export default class DbJson {
         // console.log(identifier + " not found in cache, checking file system");
         let path = this.#converter.pathOf(identifier);
         let result = await this.#fsmanager.readFile(path);
+        let object;
         if (result) {
             console.log(identifier + " retrieved from file system");
-            this.set(identifier, result);
-            this.#updateUnqualifiedIdentifierInCache(identifier, result);
+            object = JSON.parse(result);
+            this.set(identifier, object);
+            this.#updateUnqualifiedIdentifierInCache(identifier, object);
         } else if (this.#pathMap.has(identifier)) {
             path = this.#pathMap.get(identifier);
             result = await this.#fsmanager.readFile(path);
             if (result) {
                 console.log(identifier + " retrieved from file system");
-                this.set(identifier, result);
+                object = JSON.parse(result);
+                this.set(identifier, object);
             } else {
                 console.log("Could not find " + identifier);
             }
         }
-        return result;
+        return object;
     }
 
     async set(identifier, object) {
@@ -138,7 +141,7 @@ export default class DbJson {
         if (this.#objectCache.has(identifier)) {
             await this.#fsmanager.writeFile(
                 path,
-                this.#objectCache.get(identifier)
+                JSON.stringify(this.#objectCache.get(identifier))
             );
             console.log("Persisted " + identifier);
             this.#persistPathMap();
@@ -166,7 +169,7 @@ export default class DbJson {
         try {
             for (const [identifier, object] of this.#objectCache) {
                 const path = this.#converter.pathOf(identifier);
-                await this.#fsmanager.writeFile(path, object);
+                await this.#fsmanager.writeFile(path, JSON.stringify(object));
                 console.log("Persisted " + identifier);
             }
             for (const identifier of this.#toDelete) {
@@ -187,7 +190,9 @@ export default class DbJson {
         if (this.#fsmanager.hasFileSync(this.#pathToPathMap)) {
             this.#pathMap = new Map(
                 Object.entries(
-                    this.#fsmanager.readFileSync(this.#pathToPathMap)
+                    JSON.parse(
+                        this.#fsmanager.readFileSync(this.#pathToPathMap)
+                    )
                 )
             );
         } else {
@@ -198,7 +203,7 @@ export default class DbJson {
     #persistPathMap() {
         this.#fsmanager.writeFileSync(
             this.#pathToPathMap,
-            Object.fromEntries(this.#pathMap)
+            JSON.stringify(Object.fromEntries(this.#pathMap))
         );
     }
 

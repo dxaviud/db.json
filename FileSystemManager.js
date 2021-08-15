@@ -38,9 +38,8 @@ export default class FileSystemManager {
 
     async readFile(filePath) {
         if (await this.hasFile(filePath)) {
-            const jsonString = await fs.readFile(filePath, "utf8");
-            console.log("Read object from " + filePath);
-            return JSON.parse(jsonString);
+            const result = await fs.readFile(filePath, "utf8");
+            return result;
         }
         console.log(filePath + " does not exist, cannot read from it");
         return null;
@@ -48,23 +47,22 @@ export default class FileSystemManager {
 
     readFileSync(filePath) {
         if (this.hasFileSync(filePath)) {
-            const jsonString = fsSync.readFileSync(filePath, "utf8");
-            return JSON.parse(jsonString);
+            return fsSync.readFileSync(filePath, "utf8");
         }
         return null;
     }
 
-    async writeFile(filePath, object) {
+    async writeFile(filePath, content) {
         const dirPath = path.dirname(filePath);
         await this.#ensureDir(dirPath);
-        await fs.writeFile(filePath, JSON.stringify(object));
+        await fs.writeFile(filePath, content);
         console.log("Wrote to " + filePath);
     }
 
-    writeFileSync(filePath, object) {
+    writeFileSync(filePath, content) {
         const dirPath = path.dirname(filePath);
         this.#ensureDirSync(dirPath);
-        fsSync.writeFileSync(filePath, JSON.stringify(object));
+        fsSync.writeFileSync(filePath, content);
     }
 
     async removeFile(filePath) {
