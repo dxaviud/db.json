@@ -2,7 +2,6 @@ import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
 
-//todo move all JSON related stuff from here into DbJson
 export default class FileSystemManager {
     #rootPath;
 
@@ -41,7 +40,6 @@ export default class FileSystemManager {
             const result = await fs.readFile(filePath, "utf8");
             return result;
         }
-        console.log(filePath + " does not exist, cannot read from it");
         return null;
     }
 
@@ -56,7 +54,6 @@ export default class FileSystemManager {
         const dirPath = path.dirname(filePath);
         await this.#ensureDir(dirPath);
         await fs.writeFile(filePath, content);
-        console.log("Wrote to " + filePath);
     }
 
     writeFileSync(filePath, content) {
@@ -67,11 +64,9 @@ export default class FileSystemManager {
 
     async removeFile(filePath) {
         await fs.rm(filePath);
-        console.log("Removed " + filePath);
         let dirPath = path.dirname(filePath);
         while (dirPath !== this.#rootPath && this.#dirEmpty(dirPath)) {
             await fs.rmdir(dirPath);
-            console.log("Removed empty directory " + dirPath);
             dirPath = path.dirname(dirPath);
         }
     }
