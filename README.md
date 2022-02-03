@@ -1,6 +1,6 @@
 # dbjson
 
-A (very slim) DBMS for Node.js that uses JSON files to store data. Designed to be very easy to use and inspired by Redis.
+A slim database/cache for Node.js that uses JSON files to store data.
 
 ## Usage
 
