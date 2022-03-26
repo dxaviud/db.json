@@ -1,6 +1,6 @@
 {
     "name": "@dxaviud/dbjson",
-    "version": "5.1.6",
+    "version": "5.1.7",
     "description": "A (very slim) DBMS for Node.js that uses JSON files to store data. Designed to be very easy to use and inspired by Redis.",
     "main": "index.js",
     "scripts": {
