@@ -1,6 +1,6 @@
 # dbjson
 
-A slim database/cache for Node.js that uses JSON files to store data.
+A small database/cache for Node.js that uses JSON files to store data.
 
 ## Usage
 
